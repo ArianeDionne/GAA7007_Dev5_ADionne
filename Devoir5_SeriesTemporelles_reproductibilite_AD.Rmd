@@ -1,0 +1,168 @@
+---
+title: 'Devoir 5 : Séries temporelles et reproductibilité'
+author: "Ariane Dionne"
+date: "31/07/2020"
+output: html_document
+---
+
+## 1 Installation des modules et librairies
+
+Pour débuter la session, voici une liste des modules et libraries qui seront nécessaires pour lancer le code R et ses différentes fonctions. Si certains modules sont déjà installés sur votre ordinateur, il n'est pas nécessaires de les installer de nouveau. 
+```{r}
+##install.packages("tidyverse") 
+library("tidyverse") 
+
+##install.packages("ggplot2") 
+library("ggplot2")
+
+##install.packages("lubridate")
+library("lubridate")
+
+##install.packages("forecast")
+library("forecast")
+
+##install.packages("fpp2")
+library("fpp2")
+
+##install.packages("cowplot")
+library("cowplot")
+
+##install.packages("e1071")
+library("e1071")
+```
+
+## 2 Importer les données hawai
+
+Importation du tableau **hawai** avec la fonction `read.csv`, car le séparateur utilisé dans le tableau est une virgule et le séparateur décimal est un point. Les données du tableau **hawai** comprennent les données de temps dans la colonne `time` et les moyennes des mesures mensuelles de CO2 atmosphérique dans la colonne `CO2`entrées en ppm-volume collectées au Mauna Loa Observatory à Hawaii de mars 1958 à décembre 2001, inclusivement.
+
+```{r}
+hawai <- read.csv("data/hawai.csv") # données hawai(moyennes ppm-volume collectées de CO2)
+glimpse(hawai) # aperçu du tableau 
+```
+
+### 2.1 Exploration graphique
+
+Il est plus aisé d'explorer graphiquement les données du tableau **hawai** afin d'y déceler des structures. Les données de CO2 atmosphérique semblent présenter une **tendance** à la hausse d'années en années. De plus, une **fluctuation saisonnière ou annuelle** semble également être présente. 
+```{r}
+hawai %>%
+  ggplot(aes(x = time, y = `CO2`)) +
+  geom_line()
+```
+
+## 3 Création d'une série temporelle
+
+Avec la fonction `ts`, le tableau **hawai_ts** est créé en série temporelle. Pour se faire, la colonne `time` du tableau **hawai** est enlevée, la série temporelle débute au premier événement du tableau **hawai** et l'incrémentation est mensuelle, c'est-à-dire douze fois en un an. 
+
+```{r}
+### de type ts :   
+hawai_ts <- ts(hawai %>% dplyr::select(-time),      # Enlever colonne time
+                    start = c(hawai$time[1], 1),    # Démarrer au 1er événement
+                    frequency = 12)                 # Incrément mensuel (fréquence de 1/12)
+hawai_ts
+```
+
+### 3.1 Vérification graphique de la série temporelle
+
+Une vérification graphique confirme que toutes les données du tableau **hawai** ont bien été transformées en série temporelle vers le tableau **hawai_ts**. Les données débutent en mars 1958 et se terminent en décembre 2001 inclusivement. 
+```{r}
+graph_ts <- autoplot(hawai_ts)
+graph_ts
+```
+
+## 4 Séries d'entraînement et de test
+Avant de procéder à la modélisation prévisionnelle, il est important de séparer les données temporelles en série d'entraînement ainsi qu'en série de test afin de créer le modèle et de le vérifier par la suite.
+
+```{r}
+indice_70 <- floor(length(hawai$time)*0.7) #indice qui arrivent à 70 % des données hawai
+annee_70 <- floor(hawai$time[indice_70])   # année reliée à l'indice 70 %
+hawai_ts_train <- window(hawai_ts, start = 1958, end = (annee_70-(1/12))) # 70% des 1ere données pour l'entraînement
+hawai_ts_test <- window(hawai_ts, start = annee_70)                       # 30 % des dernières données pour le test 
+### Vérification des séries d'entraînement et de test 
+hawai_ts_train
+hawai_ts_test
+```
+
+## 5 Modèle prévisionnel 
+
+Le modèle ARIMA (*auto-regressive integrated moving average*) a été choisi pour effecuter les prévisions. 
+
+### 5.1 Prétraitement des données
+
+La fonction `forecast::BoxCox.lambda()` estime pour nous la valeur optimale de lambda λ. Ce lamnda  de `-0.07226294` sera utilisé dans le modèle prévisionnel. 
+ 
+```{r}
+BoxCox.lambda(hawai_ts_train) # lambda optimale avec fonction BoxCox
+```
+
+### 5.2 Modèle prévisionnel ARIMA
+
+Comme la série temporelle semble démontrer une tendance et des fluctuations saisonnière, le modèle ARIMA semble approprié. La fonction `forecast::auto.arima()` fournit le modèle prévisionnel. La fonction optmise également les coefficients **ARIMA(p,d,q)(P,D,Q)m**. 
+
+```{r}
+hawai_arima <- hawai_ts_train %>% auto.arima(lambda = -0.0722) # modèle prévisionnel ARIMA
+summary(hawai_arima)
+```
+
+Ainsi, avec un lambda = `-0.07226294`, le modèle prévisionnel arrive aux coefficients **ARIMA(1,1,1)(2,1,2)[12]** détectant effectivement une fluctuation saisonnière à une fréquence de 12 mois. Tous les coefficients ont également été considérés par le modèle: l'autorégression, l'inégration et la moyenne mobile. 
+
+### 5.3 Projection des prévisions
+
+Voici la projection graphique des données prévues par le modèle ARIMA.
+
+```{r}
+### Projection des prévisions pour les années 1988 à 2001 (les 30% de données test) 
+Graph_prev <- hawai_arima %>% forecast(h = 169) %>% autoplot()
+Graph_prev
+```
+
+La tendance et les fluctuations saisonnières ont bien été considérés par le modèle ARIMA. La précision de la prédiction diminue évidemment avec le temps. Une comparaison des prédictions avec la série de données test permettra de juger de la fiabilité du modèle prévisionnel.
+
+### 5.4 Comparaison des prédictions avec les donées test 
+
+Le modèle ARIMA semble avoir prédit de manière très acceptable les données test. Les données test de couleur bleu foncée suivent assez fidèlement les données test en jaune. Le modèle est donc **fiable** et pourrait être amélioré avec plus de données d'entraînement et en intégrant des **covariables** qui pourraient influencer les données mesurées de CO2 atmosphérique (modèle dynamique). 
+
+```{r}
+### Comparaison aux données test 
+Graph_comp <- hawai_arima %>% forecast(h = 169) %>% autoplot()+
+  autolayer(fitted(hawai_arima)) +
+  autolayer(hawai_ts_test, color = "yellow") +
+  labs(x = "Année", y = "CO2")
+Graph_comp
+```
+
+### 5.5 Analyse des résidus
+
+La distribution des résidus ne semble pas démontrer de structure. Toutefois, il semble y avoir une valeur aberrante collectée avant 1960. Le graphique d'autocorrélation démontre cependant un quelques données significativement corrélées à une fréquence de 12 mois. Il semble également y avoir une structure sinusoïdale, mais qui n'est pas significiative. Finalement, l'histrogramme de normalité semble indiquer que les résidus ne suivent pas une distribution normale. 
+Le test de normalité de Shapiro-Wilk confirme que les résidus ne suivent pas une distribution normale. 
+
+## 6. Reproductibilité 
+
+Voici le lien pour le code reproductible du Devoir 5 sur les séries temporelles et la reproductibilité 
+```{r}
+checkresiduals(hawai_arima) # Distribution des Résidus, graphique d'autocorrélation et histogramme de normalité 
+shapiro.test(residuals(hawai_arima)) # non-normal si p-value < seuil (0.05)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
