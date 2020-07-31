@@ -84,11 +84,11 @@ hawai_ts_test
 
 ## 5 Modèle prévisionnel 
 
-Le modèle ARIMA (*auto-regressive integrated moving average*) a été choisi pour effecuter les prévisions. 
+Le modèle ARIMA (*auto-regressive integrated moving average*) a été choisi pour effectuer les prévisions. 
 
 ### 5.1 Prétraitement des données
 
-La fonction `forecast::BoxCox.lambda()` estime pour nous la valeur optimale de lambda λ. Ce lamnda  de `-0.07226294` sera utilisé dans le modèle prévisionnel. 
+La fonction `forecast::BoxCox.lambda()` estime pour nous la valeur optimale de lambda λ. Ce lambda  de `-0.07226294` sera utilisé dans le modèle prévisionnel. 
  
 ```{r}
 BoxCox.lambda(hawai_ts_train) # lambda optimale avec fonction BoxCox
@@ -96,14 +96,14 @@ BoxCox.lambda(hawai_ts_train) # lambda optimale avec fonction BoxCox
 
 ### 5.2 Modèle prévisionnel ARIMA
 
-Comme la série temporelle semble démontrer une tendance et des fluctuations saisonnière, le modèle ARIMA semble approprié. La fonction `forecast::auto.arima()` fournit le modèle prévisionnel. La fonction optmise également les coefficients **ARIMA(p,d,q)(P,D,Q)m**. 
+Comme la série temporelle semble démontrer une tendance et des fluctuations saisonnière, le modèle ARIMA est approprié. La fonction `forecast::auto.arima()` fournit le modèle prévisionnel. La fonction optmise également les coefficients **ARIMA(p,d,q)(P,D,Q)m**. 
 
 ```{r}
 hawai_arima <- hawai_ts_train %>% auto.arima(lambda = -0.0722) # modèle prévisionnel ARIMA
 summary(hawai_arima)
 ```
 
-Ainsi, avec un lambda = `-0.07226294`, le modèle prévisionnel arrive aux coefficients **ARIMA(1,1,1)(2,1,2)[12]** détectant effectivement une fluctuation saisonnière à une fréquence de 12 mois. Tous les coefficients ont également été considérés par le modèle: l'autorégression, l'inégration et la moyenne mobile. 
+Ainsi, avec un lambda = `-0.07226294`, le modèle prévisionnel arrive aux coefficients **ARIMA(1,1,1)(2,1,2)[12]** détectant effectivement une fluctuation saisonnière à une fréquence de 12 mois. Tous les coefficients ont également été considérés par le modèle: l'autorégression, l'intégration et la moyenne mobile. 
 
 ### 5.3 Projection des prévisions
 
@@ -115,7 +115,7 @@ Graph_prev <- hawai_arima %>% forecast(h = 169) %>% autoplot()
 Graph_prev
 ```
 
-La tendance et les fluctuations saisonnières ont bien été considérés par le modèle ARIMA. La précision de la prédiction diminue évidemment avec le temps. Une comparaison des prédictions avec la série de données test permettra de juger de la fiabilité du modèle prévisionnel.
+La tendance et les fluctuations saisonnières ont bien été considérées par le modèle ARIMA. La précision de la prédiction diminue évidemment avec le temps. Une comparaison des prédictions avec la série de données test permettra de juger de la fiabilité du modèle prévisionnel.
 
 ### 5.4 Comparaison des prédictions avec les donées test 
 
@@ -135,13 +135,14 @@ Graph_comp
 La distribution des résidus ne semble pas démontrer de structure. Toutefois, il semble y avoir une valeur aberrante collectée avant 1960. Le graphique d'autocorrélation démontre cependant un quelques données significativement corrélées à une fréquence de 12 mois. Il semble également y avoir une structure sinusoïdale, mais qui n'est pas significiative. Finalement, l'histrogramme de normalité semble indiquer que les résidus ne suivent pas une distribution normale. 
 Le test de normalité de Shapiro-Wilk confirme que les résidus ne suivent pas une distribution normale. 
 
-## 6. Reproductibilité 
-
-Voici le lien pour le code reproductible du Devoir 5 sur les séries temporelles et la reproductibilité 
 ```{r}
 checkresiduals(hawai_arima) # Distribution des Résidus, graphique d'autocorrélation et histogramme de normalité 
 shapiro.test(residuals(hawai_arima)) # non-normal si p-value < seuil (0.05)
 ```
+
+## 6. Reproductibilité 
+
+Voici le lien pour le code reproductible du Devoir 5 sur les séries temporelles et la reproductibilité 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
