@@ -2,7 +2,7 @@
 title: 'Devoir 5 : Séries temporelles et reproductibilité'
 author: "Ariane Dionne"
 date: "31/07/2020"
-output: html_document
+output: github_document
 ---
 
 ## 1 Installation des modules et librairies
@@ -142,7 +142,7 @@ shapiro.test(residuals(hawai_arima)) # non-normal si p-value < seuil (0.05)
 
 ## 6. Reproductibilité 
 
-Voici le lien pour le code reproductible du Devoir 5 sur les séries temporelles et la reproductibilité 
+Voici le [lien github](https://github.com/ArianeDionne/GAA7007_Dev5_ADionne.git) pour qui vous envoie vers le code reproductible du Devoir 5 sur les séries temporelles et la reproductibilité 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
